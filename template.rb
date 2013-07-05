@@ -59,6 +59,8 @@ end
 # Platform specific config
 platform = ask("Which platform will this app be running on? (defaults to heroku)")
 case platform
+when "something"
+  # Blah
 else
   gem "foreman"
 end
@@ -70,8 +72,9 @@ gsub_file "config/environments/production.rb", /#config\.cache_store = :mem_cach
 end
 
 %w{development test}.each do |env|
-  inject_into_file "config/environments/#{env}.rb" do
+  inject_into_file "config/environments/#{env}.rb", after: "config.eager_load = false" do
     <<-CODE
+      \r\n
       config.cache_store = :null_store
     CODE
   end
