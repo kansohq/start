@@ -36,10 +36,6 @@ gem "simple_form"
 # Templates 
 gem "haml"
 
-gem_group "assets" do
-
-end
-
 gem_group "development", "test" do
   # General
   gem "pry-rails"
@@ -60,6 +56,11 @@ gem_group "test" do
 
   gem "timecop"
 end
+
+#gsub_file("Gemfile", %Q{
+# Use sqlite3 as the database for Active Record
+#gem 'sqlite3'
+#}, "")
 
 gsub_file "config/environments/production.rb", /# config\.cache_store = :mem_cache_store/ do
 %Q{
@@ -103,35 +104,57 @@ end
 
 # Devise
 generate "devise:install"
-generate :devise, "User"
+if yes?("Generate a default devise setup?")
+  model_name = ask("Name for the devise model? (default is User)")
+  model_name = "User" if model_name.blank?
 
-gsub_file("app/models/user.rb", %Q{
-  # Setup accessible (or protected) attributes for your model
-  attr_accessible :email, :password, :password_confirmation, :remember_me
-}, "")
+  generate :devise, model_name
 
-inject_into_file "app/controllers/application_controller.rb", after: "protect_from_forgery with: :exception" do
-%Q{
-  \n
-  before_filter :configure_permitted_parameters, if: :devise_controller?
+  gsub_file("app/models/#{model_name.downcase}.rb", %Q{
+    # Setup accessible (or protected) attributes for your model
+    attr_accessible :email, :password, :password_confirmation, :remember_me
+  }, "")
 
-  protected
+  inject_into_file "app/controllers/application_controller.rb", after: "protect_from_forgery with: :exception" do
+  %Q{
+    \n
+    before_filter :configure_permitted_parameters, if: :devise_controller?
 
-  def configure_permitted_parameters
-    devise_parameter_sanitizer.for(:sign_in) { |u| u.permit(:username, :email) }
+    protected
+
+    def configure_permitted_parameters
+      devise_parameter_sanitizer.for(:sign_in) { |u| u.permit(:username, :email) }
+    end
+  }
   end
-}
+end
+
+platform = ask("What hosting platform are you targetting? (default is heroku)")
+platform = "heroku" if platform.blank?
+
+case platform
+when "heroku"
+  gem "memcachier"
 end
 
 # Run migrations
-rake "db:migrate"
+if yes?("Run migrations?")
+  rake "db:migrate"
+end
 
 # Git setup
 git :init
 
 # Add defaults to .gitignore
 append_file ".gitignore", %Q{
+# Ignore irritating OS X files
+.DS_Store
+
+# Ignore local environment files
 .env
+
+# Ignore local DB config
+config/database.yml
 }
 
 git add: "."
