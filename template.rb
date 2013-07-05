@@ -35,7 +35,7 @@ gem "oj" # Faster JSON implementation
 gem "draper"
 gem "simple_form"
 
-# Templates 
+# Templates
 gem "haml"
 
 gem_group "development", "test" do
@@ -66,17 +66,13 @@ end
 
 # Set dalli as cache store in production
 gsub_file "config/environments/production.rb", /# config\.cache_store = :mem_cache_store/ do
-%Q{
-  config.cache_store = :dalli_store
-}
+%Q{config.cache_store = :dalli_store}
 end
 
 # Set cache_store as null_store in development/test
 %w{development test}.each do |env|
-  inject_into_file "config/environments/#{env}.rb", after: "config.eager_load = false\n" do
-%Q{
-  config.cache_store = :null_store
-}
+  application(nil, env: env) do
+%Q{config.cache_store = :null_store}
   end
 end
 
@@ -88,19 +84,35 @@ if Rails.env.production?
 end
 }
 
-file "config/environments/staging.rb", %Q{
-require "production"
-}
+file "config/environments/staging.rb",
+%Q{require "production"}
 
-file "Procfile", %Q{
-web: bundle exec puma -C config/puma.rb
-worker: bundle exec sidekiq
-}
+file "Procfile",
+%Q{web: bundle exec puma -C config/puma.rb
+worker: bundle exec sidekiq}
 
-file "config/puma.rb", %q{
-threads 8,8
-bind "tcp://0.0.0.0:#{ENV['PORT']}"
-}
+file "config/puma.rb",
+%q{threads 8,8
+bind "tcp://0.0.0.0:#{$PORT}"}
+
+file "config/database.example.yml",
+%Q{development:
+  adapter: postgresql
+  encoding: unicode
+  database: #{@app_name}_development
+  pool: 5
+  username: postgres
+  password:
+  host: localhost
+
+test:
+  adapter: postgresql
+  encoding: unicode
+  database: #{@app_name}_test
+  pool: 5
+  username: postgres
+  password:
+  host: localhost}
 
 # Set up a .env file for development
 if yes? "Would you like to generate a .env file for local development?"
@@ -117,7 +129,6 @@ generate "devise:install"
 
 inject_into_file "app/controllers/application_controller.rb", after: "protect_from_forgery with: :exception" do
 %Q{
-  \n
   before_filter :configure_permitted_parameters, if: :devise_controller?
 
   protected
@@ -206,3 +217,4 @@ config/database.yml
 
 git add: "."
 git commit: %Q{ -m 'Initial commit' }
+
