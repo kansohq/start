@@ -1,3 +1,5 @@
+# Don't put \r in inject/gsub
+
 # Server
 gem "puma"
 gem "rack-cache"
@@ -65,18 +67,17 @@ else
   gem "foreman"
 end
 
-gsub_file "config/environments/production.rb", /#config\.cache_store = :mem_cache_store/ do
-  <<-CODE
-    config.cache_store = :dalli_store
-  CODE
+gsub_file "config/environments/production.rb", /# config\.cache_store = :mem_cache_store/ do
+<<-CODE
+  config.cache_store = :dalli_store
+CODE
 end
 
 %w{development test}.each do |env|
-  inject_into_file "config/environments/#{env}.rb", after: "config.eager_load = false" do
-    <<-CODE
-      \r\n
-      config.cache_store = :null_store
-    CODE
+  inject_into_file "config/environments/#{env}.rb", after: "config.eager_load = false\n" do
+<<-CODE
+  config.cache_store = :null_store
+CODE
   end
 end
 
@@ -100,7 +101,7 @@ generate "devise:install"
 generate :devise, "User"
 
 inject_into_file "app/controllers/application_controller.rb", after: "protect_from_forgery with: :exception" do <<-CODE
-  \r\n
+  \n
   before_filter :configure_permitted_parameters, if: :devise_controller?
 
   protected
