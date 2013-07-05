@@ -1,5 +1,8 @@
 # Don't put \r in inject/gsub
 
+# Defaults
+WEB_PORT = 5000
+
 # Server
 gem "puma"
 gem "rack-cache"
@@ -58,15 +61,6 @@ gem_group "test" do
   gem "timecop"
 end
 
-# Platform specific config
-platform = ask("Which platform will this app be running on? (defaults to heroku)")
-case platform
-when "something"
-  # Blah
-else
-  gem "foreman"
-end
-
 gsub_file "config/environments/production.rb", /# config\.cache_store = :mem_cache_store/ do
 %Q{
   config.cache_store = :dalli_store
@@ -92,10 +86,20 @@ web: bundle exec puma -C config/puma.rb
 worker: bundle exec sidekiq
 }
 
-file "config/puma.rb", %Q{
+file "config/puma.rb", %q{
 threads 8,8
-bind "tcp://0.0.0.0:#{$PORT}"
+bind "tcp://0.0.0.0:#{ENV['PORT']}"
 }
+
+# Set up a .env file for development
+if yes? "Would you like to generate a .env file for local development?"
+  port = ask("What port would you like the web server to run on? (defaults to 5000)")
+  port = WEB_PORT if port.blank?
+  
+  file ".env", %Q{
+PORT=#{port}
+  }
+end
 
 # Devise
 generate "devise:install"
@@ -119,8 +123,16 @@ inject_into_file "app/controllers/application_controller.rb", after: "protect_fr
 }
 end
 
+# Run migrations
 rake "db:migrate"
 
+# Git setup
 git :init
+
+# Add defaults to .gitignore
+append_file ".gitignore", %Q{
+.env
+}
+
 git add: "."
 git commit: %Q{ -m 'Initial commit' }
