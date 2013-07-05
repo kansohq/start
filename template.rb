@@ -30,7 +30,7 @@ gem "oj" # Faster JSON implementation
 gem "draper"
 gem "simple_form"
 
-# Templates 
+# Templates
 gem "haml"
 
 gem_group "assets" do
@@ -68,34 +68,46 @@ else
 end
 
 gsub_file "config/environments/production.rb", /# config\.cache_store = :mem_cache_store/ do
-%Q{
-  config.cache_store = :dalli_store
-}
+%Q{config.cache_store = :dalli_store}
 end
 
 %w{development test}.each do |env|
-  inject_into_file "config/environments/#{env}.rb", after: "config.eager_load = false\n" do
-%Q{
-  config.cache_store = :null_store
-}
+  application(nil, env: env) do
+%Q{config.cache_store = :null_store}
   end
 end
 
 # Switch session store to dalli
 
-file "config/environments/staging.rb", %Q{
-require "production"
-}
+file "config/environments/staging.rb",
+%Q{require "production"}
 
-file "Procfile", %Q{
-web: bundle exec puma -C config/puma.rb
-worker: bundle exec sidekiq
-}
+file "Procfile",
+%Q{web: bundle exec puma -C config/puma.rb
+worker: bundle exec sidekiq}
 
-file "config/puma.rb", %Q{
-threads 8,8
-bind "tcp://0.0.0.0:#{$PORT}"
-}
+file "config/puma.rb",
+%q{threads 8,8
+bind "tcp://0.0.0.0:#{$PORT}"}
+
+file "config/database.example.yml",
+%Q{development:
+  adapter: postgresql
+  encoding: unicode
+  database: #{@app_name}_development
+  pool: 5
+  username: postgres
+  password:
+  host: localhost
+
+test:
+  adapter: postgresql
+  encoding: unicode
+  database: #{@app_name}_test
+  pool: 5
+  username: postgres
+  password:
+  host: localhost}
 
 # Devise
 generate "devise:install"
@@ -108,7 +120,6 @@ gsub_file("app/models/user.rb", %Q{
 
 inject_into_file "app/controllers/application_controller.rb", after: "protect_from_forgery with: :exception" do
 %Q{
-  \n
   before_filter :configure_permitted_parameters, if: :devise_controller?
 
   protected
@@ -124,3 +135,4 @@ rake "db:migrate"
 git :init
 git add: "."
 git commit: %Q{ -m 'Initial commit' }
+
