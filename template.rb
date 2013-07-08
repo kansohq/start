@@ -123,6 +123,9 @@ if yes? "Would you like to generate a .env file for local development?"
   file ".env", %Q{
 PORT=#{port}
   }
+
+  # export all variables in .env for use with pow
+  file ".powenv", %q{export $(cat .env)}
 end
 
 run 'bundle install'
