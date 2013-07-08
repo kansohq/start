@@ -142,6 +142,136 @@ inject_into_file "app/controllers/application_controller.rb", after: "protect_fr
 }
 end
 
+if yes?("Set up rspec and guard?")
+  gem_group "test" do
+    gem 'guard'
+    gem 'guard-spork'
+    gem 'guard-rspec'
+    gem 'guard-sidekiq'
+  end
+
+  run 'bundle install'
+
+  generate "rspec:install"
+  run "bundle binstubs rspec-core"
+
+  application %Q{config.generators do |g|
+      g.test_framework :rspec
+      g.fixture_replacement :machinist
+    end}
+
+  file "spec/support/blueprints.rb", "require 'machinist/active_record'\n"
+
+  remove_file "spec/spec_helper.rb"
+  file "spec/spec_helper.rb", %q{# This file is copied to spec/ when you run 'rails generate rspec:install'
+
+require 'rubygems'
+require 'spork'
+
+#uncomment the following line to use spork with the debugger
+#require 'spork/ext/ruby-debug'
+
+Spork.prefork do
+  # Loading more in this block will cause your tests to run faster. However,
+  # if you change any configuration or code from libraries loaded here, you'll
+  # need to restart spork for it take effect.
+
+  ENV["RAILS_ENV"] ||= 'test'
+  require File.expand_path("../../config/environment", __FILE__)
+  require 'rspec/rails'
+
+  # Requires supporting ruby files with custom matchers and macros, etc,
+  # in spec/support/ and its subdirectories.
+  Dir[Rails.root.join("spec/support/**/*.rb")].each do |f|
+    require f unless f =~ /\/blueprints\.rb$/
+  end
+end
+
+Spork.each_run do
+  # This code will be run each time you run your specs.
+  require_relative 'support/blueprints.rb'
+end
+  }
+
+  file "Guardfile", %q{notification :tmux, :display_message => true, :timeout => 3
+
+guard 'spork', cucumber_env: { 'RAILS_ENV' => 'test' }, rspec_env: { 'RAILS_ENV' => 'test' }, test_unit: false do
+  watch('config/application.rb')
+  watch('config/environment.rb')
+  watch('config/environments/test.rb')
+  watch(%r{^config/initializers/.+\.rb$})
+  watch('Gemfile')
+  watch('Gemfile.lock')
+  watch('spec/spec_helper.rb') { :rspec }
+  watch('test/test_helper.rb') { :test_unit }
+  watch(%r{features/support/}) { :cucumber }
+end
+
+#NOTE: Disabled for now, running jobs inline
+### Guard::Sidekiq
+#  available options:
+#  - :verbose
+#  - :queue (defaults to "default")
+#  - :concurrency (defaults to 1)
+#  - :timeout
+#  - :environment (corresponds to RAILS_ENV for the Sidekiq worker)
+#guard 'sidekiq', :environment => 'development' do
+#  watch(%r{^workers/(.+)\.rb$})
+#end
+
+guard 'rspec', :cli => '--drb', :all_after_pass => false do
+  watch(%r{^spec/.+_spec\.rb$})
+  watch(%r{^lib/(.+)\.rb$})     { |m| "spec/lib/#{m[1]}_spec.rb" }
+  watch('spec/spec_helper.rb')  { "spec" }
+
+  # Rails example
+  watch(%r{^app/(.+)\.rb$})                           { |m| "spec/#{m[1]}_spec.rb" }
+  watch(%r{^app/(.*)(\.erb|\.haml)$})                 { |m| "spec/#{m[1]}#{m[2]}_spec.rb" }
+  watch(%r{^app/controllers/(.+)_(controller)\.rb$})  { |m| ["spec/routing/#{m[1]}_routing_spec.rb", "spec/#{m[2]}s/#{m[1]}_#{m[2]}_spec.rb", "spec/acceptance/#{m[1]}_spec.rb"] }
+  watch(%r{^spec/support/(.+)\.rb$})                  { "spec" }
+  watch('app/controllers/application_controller.rb')  { "spec/controllers" }
+
+  # Capybara request specs
+  watch(%r{^app/views/(.+)/.*\.(erb|haml)$})          { |m| "spec/requests/#{m[1]}_spec.rb" }
+  # Fabricator
+  watch(%r{^spec/fabricators/(.+)_fabricator\.rb$})   { |m| "spec/model/#{m[1]}_spec.rb" }
+
+  # Turnip features and steps
+  watch(%r{^spec/acceptance/(.+)\.feature$})
+  watch(%r{^spec/acceptance/steps/(.+)_steps\.rb$})   { |m| Dir[File.join("**/#{m[1]}.feature")][0] || 'spec/acceptance' }
+end
+  }
+
+  file "spec/support/deferred_garbage_collection.rb", %q{class DeferredGarbageCollection
+  DEFERRED_GC_THRESHOLD = (ENV['DEFER_GC'] || 10.0).to_f
+
+  @@last_gc_run = Time.now
+
+  def self.start
+    GC.disable if DEFERRED_GC_THRESHOLD > 0
+  end
+
+  def self.reconsider
+    if DEFERRED_GC_THRESHOLD > 0 && Time.now - @@last_gc_run >= DEFERRED_GC_THRESHOLD
+      GC.enable
+      GC.start
+      GC.disable
+      @@last_gc_run = Time.now
+    end
+  end
+end
+
+RSpec.configure do |config|
+  config.before(:all) do
+    DeferredGarbageCollection.start
+  end
+  config.after(:all) do
+    DeferredGarbageCollection.reconsider
+  end
+end
+  }
+end
+
 if yes?("Generate a default devise setup?")
   model_name = ask("Name for the devise model? (default is User)")
   model_name = USER_MODEL if model_name.blank?
@@ -201,6 +331,7 @@ file "config/initializers/sidekiq.rb", %Q{
 # Run migrations
 if yes?("Run migrations?")
   rake "db:migrate"
+  rake "db:test:prepare"
 end
 
 # Git setup
