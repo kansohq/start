@@ -71,9 +71,10 @@ end
 
 # Set cache_store as null_store in development/test
 %w{development test}.each do |env|
-  application(nil, env: env) do
-%Q{config.cache_store = :null_store}
-  end
+  application %Q{# Config options from start template
+  config.cache_store = :null_store
+  config.action_mailer.default_url_options = { :host => 'localhost:3000' }
+  }, env: env
 end
 
 # Switch session store to dalli
@@ -123,6 +124,8 @@ if yes? "Would you like to generate a .env file for local development?"
 PORT=#{port}
   }
 end
+
+run 'bundle install'
 
 # Devise
 generate "devise:install"
