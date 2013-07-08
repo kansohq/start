@@ -41,6 +41,9 @@ gem "haml"
 gem_group "development", "test" do
   # General
   gem "pry-rails"
+
+  # Mail
+  gem "letter_opener"
 end
 
 gem_group "test" do
@@ -52,9 +55,6 @@ gem_group "test" do
   gem "ffaker"
   gem "database_cleaner"
   gem "shoulda-matchers"
-
-  # Mail
-  gem "letter_opener"
 
   gem "timecop"
 end
@@ -118,7 +118,7 @@ test:
 if yes? "Would you like to generate a .env file for local development?"
   port = ask("What port would you like the web server to run on? (defaults to 5000)")
   port = WEB_PORT if port.blank?
-  
+
   file ".env", %Q{
 PORT=#{port}
   }
