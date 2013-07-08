@@ -163,9 +163,7 @@ if yes?("Set up rspec and guard?")
   file "spec/support/blueprints.rb", "require 'machinist/active_record'\n"
 
   remove_file "spec/spec_helper.rb"
-  file "spec/spec_helper.rb", %q{# This file is copied to spec/ when you run 'rails generate rspec:install'
-
-require 'rubygems'
+  file "spec/spec_helper.rb", %q{require 'rubygems'
 require 'spork'
 
 #uncomment the following line to use spork with the debugger
@@ -267,6 +265,56 @@ RSpec.configure do |config|
   end
   config.after(:all) do
     DeferredGarbageCollection.reconsider
+  end
+end
+  }
+
+  file "spec/support/database_cleaner.rb", %q{RSpec.configure do |config|
+  config.use_transactional_fixtures = false
+
+  config.before(:suite) do
+    DatabaseCleaner.strategy = :transaction
+    DatabaseCleaner.clean_with(:truncation)
+  end
+
+  config.before(:each) do
+    DatabaseCleaner.start
+  end
+
+  # This resolves problems with request specs
+  config.before(type: :request) do
+    DatabaseCleaner.strategy = :truncation
+  end
+
+  config.after(:each) do
+    DatabaseCleaner.clean
+  end
+end
+  }
+
+  file "spec/support/controller_macros.rb", %q{module ControllerMacros
+  def login_user
+    before(:each) do
+      @request.env["devise.mapping"] = Devise.mappings[:user]
+      sign_in User.new(first_name: 'Test', last_name: 'User')
+    end
+  end
+end
+  }
+
+  file "spec/support/devise.rb", %q{require_relative './controller_macros'
+RSpec.configure do |config|
+  config.include Devise::TestHelpers, type: :controller
+  config.extend ControllerMacros, type: :controller
+end
+  }
+
+  file "spec/support/sidekiq.rb", %q{require 'sidekiq/rails'
+require 'sidekiq/testing'
+
+RSpec.configure do |config|
+  config.before(:each) do
+    Sidekiq::Worker.clear_all
   end
 end
   }
