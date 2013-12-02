@@ -73,7 +73,7 @@ end
 %w{development test}.each do |env|
   application %Q{# Config options from start template
   config.cache_store = :null_store
-  config.action_mailer.default_url_options = { :host => 'localhost:3000' }
+  config.action_mailer.default_url_options = { host: ENV['MAIL_HOST'] }
   }, env: env
 end
 
@@ -122,6 +122,7 @@ if yes? "Would you like to generate a .env file for local development?"
 
   file ".env", %Q{
 PORT=#{port}
+MAIL_HOST=localhost:#{port}
   }
 
   # export all variables in .env for use with pow
