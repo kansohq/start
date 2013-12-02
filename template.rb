@@ -4,6 +4,7 @@
 WEB_PORT = 5000
 WEB_PLATFORM = "heroku"
 USER_MODEL = "User"
+HOST_NAME = "#{@app_name}.dev"
 
 # Server
 gem "puma"
@@ -123,10 +124,13 @@ if yes? "Would you like to generate a .env file for local development?"
   port = ask("What port would you like the web server to run on? (defaults to 5000)")
   port = WEB_PORT if port.blank?
 
+  host = ask("What hostname will the application respond to in development? (defaults to #{HOST_NAME})")
+  host = HOST_NAME if host.blank?
+
   file ".env", %Q{
 PORT=#{port}
-MAIL_HOST=localhost:#{port}
-  }
+MAIL_HOST=#{host}
+}
 
   # export all variables in .env for use with pow
   file ".powenv", %q{export $(cat .env)}
