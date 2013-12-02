@@ -1,9 +1,18 @@
 # Don't put \r in inject/gsub
 
+def using_pow?
+  @using_pow ||= yes?("Will pow be used for development?")
+end
+
 # Defaults
 WEB_PLATFORM = "heroku"
 USER_MODEL = "User"
-HOST_NAME = "#{@app_name}.dev"
+
+if using_pow?
+  HOST_NAME = "#{@app_name}.dev"
+else
+  HOST_NAME = "0.0.0.0:5000"
+end
 
 # Server
 gem "puma"
@@ -127,8 +136,10 @@ if yes? "Would you like to generate a .env file for local development?"
 HOST_NAME=#{host}
 }
 
-  # export all variables in .env for use with pow
-  file ".powenv", %q{export $(cat .env)}
+  if using_pow?
+    # export all variables in .env for use with pow
+    file ".powenv", %q{export $(cat .env)}
+  end
 end
 
 run 'bundle install'
