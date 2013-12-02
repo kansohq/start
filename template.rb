@@ -1,7 +1,6 @@
 # Don't put \r in inject/gsub
 
 # Defaults
-WEB_PORT = 5000
 WEB_PLATFORM = "heroku"
 USER_MODEL = "User"
 HOST_NAME = "#{@app_name}.dev"
@@ -74,7 +73,7 @@ end
 %w{development test}.each do |env|
   application %Q{# Config options from start template
   config.cache_store = :null_store
-  config.action_mailer.default_url_options = { host: ENV['MAIL_HOST'] }
+  config.action_mailer.default_url_options = { host: ENV['HOST_NAME'] }
   }, env: env
 end
 
@@ -98,7 +97,7 @@ worker: bundle exec sidekiq}
 
 file "config/puma.rb",
 %q{threads 8,8
-bind "tcp://0.0.0.0:#{ENV['PORT']}"}
+bind "tcp://#{ENV['HOST_NAME']}"}
 
 file "config/database.example.yml",
 %Q{development:
@@ -121,15 +120,11 @@ test:
 
 # Set up a .env file for development
 if yes? "Would you like to generate a .env file for local development?"
-  port = ask("What port would you like the web server to run on? (defaults to 5000)")
-  port = WEB_PORT if port.blank?
-
   host = ask("What hostname will the application respond to in development? (defaults to #{HOST_NAME})")
   host = HOST_NAME if host.blank?
 
   file ".env", %Q{
-PORT=#{port}
-MAIL_HOST=#{host}
+HOST_NAME=#{host}
 }
 
   # export all variables in .env for use with pow
