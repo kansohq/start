@@ -77,6 +77,9 @@ end
   }, env: env
 end
 
+# Set up letter_opener in development
+application %Q{config.action_mailer.delivery_method = :letter_opener}, env: :development
+
 # Switch session store to dalli
 remove_file "config/initializers/session_store.rb"
 file "config/initializers/session_store.rb", %Q{
@@ -94,7 +97,7 @@ worker: bundle exec sidekiq}
 
 file "config/puma.rb",
 %q{threads 8,8
-bind "tcp://0.0.0.0:#{$PORT}"}
+bind "tcp://0.0.0.0:#{ENV['PORT']}"}
 
 file "config/database.example.yml",
 %Q{development:
