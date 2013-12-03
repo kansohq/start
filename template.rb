@@ -51,13 +51,14 @@ gem_group "development", "test" do
   # General
   gem "pry-rails"
 
+  # RSpec
+  gem "rspec-rails"
+
   # Mail
   gem "letter_opener"
 end
 
 gem_group "test" do
-  # RSpec
-  gem "rspec-rails"
 
   # Models
   gem "machinist"
