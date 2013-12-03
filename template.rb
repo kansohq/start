@@ -98,7 +98,7 @@ end
 }
 
 file "config/environments/staging.rb",
-%Q{require "production"}
+%Q{require_relative 'production'}
 
 file "Procfile",
 %Q{web: bundle exec puma -C config/puma.rb
