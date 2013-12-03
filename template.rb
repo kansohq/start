@@ -45,7 +45,7 @@ gem "draper"
 gem "simple_form"
 
 # Templates
-gem "haml"
+gem "haml-rails"
 
 gem_group "development", "test" do
   # General
