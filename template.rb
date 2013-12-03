@@ -53,7 +53,9 @@ gem_group "development", "test" do
 
   # RSpec
   gem "rspec-rails"
+end
 
+gem_group "development" do
   # Mail
   gem "letter_opener"
 end
