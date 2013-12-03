@@ -61,13 +61,12 @@ gem_group "development" do
 end
 
 gem_group "test" do
+  gem "shoulda-matchers"
+  gem "database_cleaner"
 
-  # Models
+  # Fixtures/spec setup
   gem "machinist"
   gem "ffaker"
-  gem "database_cleaner"
-  gem "shoulda-matchers"
-
   gem "timecop"
 end
 
